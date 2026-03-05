@@ -99,7 +99,7 @@ export function UploadDialog({ onConversionComplete }: UploadDialogProps) {
           New Conversion
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Convert PDF to Word</DialogTitle>
         </DialogHeader>
@@ -138,12 +138,12 @@ export function UploadDialog({ onConversionComplete }: UploadDialogProps) {
               />
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-accent/50 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
+            <div className="flex items-center gap-3 overflow-hidden rounded-xl border border-border bg-accent/50 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
                 <FileUp className="h-4 w-4 text-red-400" />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="break-all text-sm font-medium leading-snug text-foreground">
                   {selectedFile.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
