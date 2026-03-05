@@ -73,9 +73,9 @@ async function handleDownload(conversionId: string, fileType: "pdf" | "docx") {
   try {
     const { url } = await getDownloadUrl(conversionId, fileType);
     window.open(url, "_blank");
-  } catch {
+  } catch (err) {
     toast.error("Download failed", {
-      description: "Could not generate download link.",
+      description: err instanceof Error ? err.message : "Could not generate download link.",
     });
   }
 }

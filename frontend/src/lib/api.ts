@@ -75,6 +75,9 @@ export async function getDownloadUrl(
   const res = await authFetch(
     `/api/conversions/${conversionId}/download/${fileType}`
   );
-  if (!res.ok) throw new Error("Failed to get download URL");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to get download URL" }));
+    throw new Error(err.detail || "Failed to get download URL");
+  }
   return res.json();
 }

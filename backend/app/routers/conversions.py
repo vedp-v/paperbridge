@@ -9,6 +9,7 @@ from app.auth import get_current_user
 from app.config import get_settings
 from app.database import get_db
 from app.models import Conversion, User
+from app.rate_limit import upload_rate_limit, download_rate_limit
 from app.schemas import ConversionResponse, DownloadResponse
 from app.services import storage, converter
 
@@ -20,7 +21,7 @@ MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB
 @router.post("/upload", response_model=ConversionResponse, status_code=201)
 async def upload_and_convert(
     file: UploadFile,
-    user: User = Depends(get_current_user),
+    user: User = Depends(upload_rate_limit),
     db: AsyncSession = Depends(get_db),
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -88,7 +89,7 @@ async def list_conversions(
 async def download_file(
     conversion_id: uuid.UUID,
     file_type: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(download_rate_limit),
     db: AsyncSession = Depends(get_db),
 ):
     if file_type not in ("pdf", "docx"):

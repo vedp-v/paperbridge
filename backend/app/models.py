@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, BigInteger, ForeignKey, Text, DateTime
+from sqlalchemy import String, BigInteger, ForeignKey, Text, DateTime, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -41,3 +41,18 @@ class Conversion(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     user: Mapped["User"] = relationship(back_populates="conversions")
+
+
+class RateLimitHit(Base):
+    __tablename__ = "rate_limit_hits"
+    __table_args__ = (
+        Index("ix_rate_limit_lookup", "identifier", "action", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    identifier: Mapped[str] = mapped_column(String(320), nullable=False)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
