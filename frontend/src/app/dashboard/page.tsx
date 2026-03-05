@@ -14,14 +14,18 @@ export default function DashboardPage() {
   const router = useRouter();
   const [conversions, setConversions] = useState<Conversion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [slowLoad, setSlowLoad] = useState(false);
 
   const loadConversions = useCallback(async () => {
+    const slowTimer = setTimeout(() => setSlowLoad(true), 3000);
     try {
       const data = await fetchConversions();
       setConversions(data);
     } catch {
       // silently fail on initial load — user may not have any conversions yet
     } finally {
+      clearTimeout(slowTimer);
+      setSlowLoad(false);
       setLoading(false);
     }
   }, []);
@@ -61,7 +65,7 @@ export default function DashboardPage() {
           <UploadDialog onConversionComplete={loadConversions} />
         </div>
 
-        <ConversionTable conversions={conversions} loading={loading} />
+        <ConversionTable conversions={conversions} loading={loading} slowLoad={slowLoad} />
 
         <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 py-12">
           <FileText className="h-4 w-4 text-muted-foreground/50" />

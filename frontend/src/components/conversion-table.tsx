@@ -83,16 +83,24 @@ async function handleDownload(conversionId: string, fileType: "pdf" | "docx") {
 interface ConversionTableProps {
   conversions: Conversion[];
   loading: boolean;
+  slowLoad?: boolean;
 }
 
 export function ConversionTable({
   conversions,
   loading,
+  slowLoad,
 }: ConversionTableProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-border/50 bg-card py-20">
+      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border/50 bg-card py-20">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        {slowLoad && (
+          <div className="flex flex-col items-center gap-1 animate-in fade-in duration-500">
+            <p className="text-sm text-muted-foreground">Waking up the server...</p>
+            <p className="text-xs text-muted-foreground/60">This can take up to 30 seconds on first visit</p>
+          </div>
+        )}
       </div>
     );
   }
