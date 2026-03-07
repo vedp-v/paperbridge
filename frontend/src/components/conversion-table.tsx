@@ -172,7 +172,10 @@ export function ConversionTable({
                   </span>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <div
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground"
+                    title={new Date(conversion.created_at).toLocaleString()}
+                  >
                     <Clock className="h-3 w-3" />
                     {formatDate(conversion.created_at)}
                   </div>
