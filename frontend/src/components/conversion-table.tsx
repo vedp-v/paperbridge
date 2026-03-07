@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   FileText,
   FileDown,
@@ -8,9 +9,16 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -19,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { type Conversion, getDownloadUrl } from "@/lib/api";
+import { type Conversion, getDownloadUrl, deleteConversion } from "@/lib/api";
 import { toast } from "sonner";
 
 type ConversionStatus = "completed" | "processing" | "failed";
@@ -84,13 +92,33 @@ interface ConversionTableProps {
   conversions: Conversion[];
   loading: boolean;
   slowLoad?: boolean;
+  onDelete: () => void;
 }
 
 export function ConversionTable({
   conversions,
   loading,
   slowLoad,
+  onDelete,
 }: ConversionTableProps) {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!confirmDeleteId) return;
+    setDeleting(true);
+    try {
+      await deleteConversion(confirmDeleteId);
+      setConfirmDeleteId(null);
+      onDelete();
+    } catch (err) {
+      toast.error("Delete failed", {
+        description: err instanceof Error ? err.message : "Could not delete conversion.",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-border/50 bg-card py-20">
@@ -118,6 +146,26 @@ export function ConversionTable({
   }
 
   return (
+    <>
+    <Dialog open={!!confirmDeleteId} onOpenChange={(v) => { if (!v && !deleting) setConfirmDeleteId(null); }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Delete conversion?</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          This will permanently delete the file and its converted output. This cannot be undone.
+        </p>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="ghost" size="sm" onClick={() => setConfirmDeleteId(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
     <div className="rounded-xl border border-border/50 bg-card">
       <Table>
         <TableHeader>
@@ -134,9 +182,10 @@ export function ConversionTable({
             <TableHead className="text-xs font-medium text-muted-foreground">
               Date
             </TableHead>
-            <TableHead className="pr-5 text-right text-xs font-medium text-muted-foreground">
+            <TableHead className="text-right text-xs font-medium text-muted-foreground">
               Download
             </TableHead>
+            <TableHead className="w-10 pr-5" />
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -152,7 +201,7 @@ export function ConversionTable({
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
                       <FileText className="h-4 w-4 text-red-400" />
                     </div>
-                    <span className="truncate text-sm font-medium text-foreground">
+                    <span className="truncate text-sm font-medium text-foreground" title={conversion.original_filename}>
                       {conversion.original_filename}
                     </span>
                   </div>
@@ -180,7 +229,7 @@ export function ConversionTable({
                     {formatDate(conversion.created_at)}
                   </div>
                 </TableCell>
-                <TableCell className="pr-5">
+                <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button
                       variant="ghost"
@@ -206,11 +255,22 @@ export function ConversionTable({
                     </Button>
                   </div>
                 </TableCell>
+                <TableCell className="pr-5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 rounded-md p-0 text-muted-foreground/40 hover:text-red-400"
+                    onClick={() => setConfirmDeleteId(conversion.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
     </div>
+    </>
   );
 }

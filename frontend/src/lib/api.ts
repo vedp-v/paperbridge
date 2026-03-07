@@ -44,6 +44,17 @@ export interface DownloadResponse {
   filename: string;
 }
 
+export interface Quota {
+  used: number;
+  limit: number;
+}
+
+export async function fetchQuota(): Promise<Quota> {
+  const res = await authFetch("/api/conversions/quota");
+  if (!res.ok) throw new Error("Failed to fetch quota");
+  return res.json();
+}
+
 export async function fetchConversions(): Promise<Conversion[]> {
   const res = await authFetch("/api/conversions");
   if (!res.ok) throw new Error("Failed to fetch conversions");
@@ -66,6 +77,16 @@ export async function uploadPdf(file: File): Promise<Conversion> {
     throw new Error(err.detail || "Upload failed");
   }
   return res.json();
+}
+
+export async function deleteConversion(conversionId: string): Promise<void> {
+  const res = await authFetch(`/api/conversions/${conversionId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to delete conversion" }));
+    throw new Error(err.detail || "Failed to delete conversion");
+  }
 }
 
 export async function getDownloadUrl(
