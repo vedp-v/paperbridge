@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { ConversionTable } from "@/components/conversion-table";
 import { UploadDialog } from "@/components/upload-dialog";
 import { fetchConversions, type Conversion } from "@/lib/api";
-import { FileText, Loader2 } from "lucide-react";
+import { FileUp, FileText, Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
   const { status } = useSession();
@@ -15,6 +15,10 @@ export default function DashboardPage() {
   const [conversions, setConversions] = useState<Conversion[]>([]);
   const [loading, setLoading] = useState(true);
   const [slowLoad, setSlowLoad] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pageDragActive, setPageDragActive] = useState(false);
+  const dragCounter = useRef(0);
 
   const loadConversions = useCallback(async () => {
     const slowTimer = setTimeout(() => setSlowLoad(true), 3000);
@@ -29,6 +33,38 @@ export default function DashboardPage() {
       setLoading(false);
     }
   }, []);
+
+  const handleDialogOpenChange = (v: boolean) => {
+    setDialogOpen(v);
+    if (!v) setPendingFile(null);
+  };
+
+  const handlePageDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current++;
+    setPageDragActive(true);
+  };
+
+  const handlePageDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setPageDragActive(false);
+  };
+
+  const handlePageDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handlePageDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setPageDragActive(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type === "application/pdf") {
+      setPendingFile(file);
+      setDialogOpen(true);
+    }
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -49,7 +85,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div
+      className="flex min-h-screen flex-col bg-background"
+      onDragEnter={handlePageDragEnter}
+      onDragLeave={handlePageDragLeave}
+      onDragOver={handlePageDragOver}
+      onDrop={handlePageDrop}
+    >
+      {pageDragActive && (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-white/20 px-16 py-12">
+            <FileUp className="h-8 w-8 text-white/60" />
+            <p className="text-base font-medium text-white/70">Drop to convert</p>
+          </div>
+        </div>
+      )}
+
       <Navbar />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
@@ -62,7 +113,12 @@ export default function DashboardPage() {
               Your PDF to Word conversion history
             </p>
           </div>
-          <UploadDialog onConversionComplete={loadConversions} />
+          <UploadDialog
+            open={dialogOpen}
+            onOpenChange={handleDialogOpenChange}
+            initialFile={pendingFile}
+            onConversionComplete={loadConversions}
+          />
         </div>
 
         <ConversionTable conversions={conversions} loading={loading} slowLoad={slowLoad} />

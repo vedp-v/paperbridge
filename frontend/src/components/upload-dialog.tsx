@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Upload, FileUp, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,14 +15,20 @@ import { toast } from "sonner";
 
 interface UploadDialogProps {
   onConversionComplete: () => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initialFile?: File | null;
 }
 
-export function UploadDialog({ onConversionComplete }: UploadDialogProps) {
-  const [open, setOpen] = useState(false);
+export function UploadDialog({ onConversionComplete, open, onOpenChange, initialFile }: UploadDialogProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initialFile) setSelectedFile(initialFile);
+  }, [initialFile]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -67,7 +73,7 @@ export function UploadDialog({ onConversionComplete }: UploadDialogProps) {
         });
       }
       onConversionComplete();
-      setOpen(false);
+      onOpenChange(false);
       setSelectedFile(null);
     } catch (err) {
       toast.error("Upload failed", {
@@ -88,7 +94,7 @@ export function UploadDialog({ onConversionComplete }: UploadDialogProps) {
       open={open}
       onOpenChange={(v) => {
         if (!uploading) {
-          setOpen(v);
+          onOpenChange(v);
           if (!v) setSelectedFile(null);
         }
       }}
