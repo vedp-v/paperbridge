@@ -72,6 +72,17 @@ async def upload_and_convert(
     return record
 
 
+@router.get("/quota")
+async def get_quota(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from datetime import timedelta
+    from app.rate_limit import _count_hits
+    used = await _count_hits(db, user.email, "upload", timedelta(hours=24))
+    return {"used": used, "limit": 10}
+
+
 @router.get("", response_model=list[ConversionResponse])
 async def list_conversions(
     user: User = Depends(get_current_user),
@@ -83,6 +94,33 @@ async def list_conversions(
         .order_by(Conversion.created_at.desc())
     )
     return result.scalars().all()
+
+
+@router.delete("/{conversion_id}", status_code=204)
+async def delete_conversion(
+    conversion_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Conversion).where(
+            Conversion.id == conversion_id,
+            Conversion.user_id == user.id,
+        )
+    )
+    record = result.scalar_one_or_none()
+
+    if not record:
+        raise HTTPException(status_code=404, detail="Conversion not found")
+
+    for key in [record.pdf_r2_key, record.docx_r2_key]:
+        if key:
+            try:
+                storage.delete_file(key)
+            except Exception:
+                pass
+
+    await db.delete(record)
 
 
 @router.get("/{conversion_id}/download/{file_type}", response_model=DownloadResponse)

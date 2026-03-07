@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { ConversionTable } from "@/components/conversion-table";
 import { UploadDialog } from "@/components/upload-dialog";
-import { fetchConversions, type Conversion } from "@/lib/api";
-import { FileUp, FileText, Loader2 } from "lucide-react";
+import { fetchConversions, fetchQuota, type Conversion, type Quota } from "@/lib/api";
+import { FileUp, FileText, Loader2, AlertTriangle } from "lucide-react";
 
 export default function DashboardPage() {
   const { status } = useSession();
@@ -18,13 +18,15 @@ export default function DashboardPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pageDragActive, setPageDragActive] = useState(false);
+  const [quota, setQuota] = useState<Quota | null>(null);
   const dragCounter = useRef(0);
 
   const loadConversions = useCallback(async () => {
     const slowTimer = setTimeout(() => setSlowLoad(true), 3000);
     try {
-      const data = await fetchConversions();
+      const [data, quotaData] = await Promise.all([fetchConversions(), fetchQuota()]);
       setConversions(data);
+      setQuota(quotaData);
     } catch {
       // silently fail on initial load — user may not have any conversions yet
     } finally {
@@ -113,15 +115,25 @@ export default function DashboardPage() {
               Your PDF to Word conversion history
             </p>
           </div>
-          <UploadDialog
-            open={dialogOpen}
-            onOpenChange={handleDialogOpenChange}
-            initialFile={pendingFile}
-            onConversionComplete={loadConversions}
-          />
+          <div className="flex items-center gap-3">
+            {quota && quota.used >= 7 && (
+              <div className={`flex items-center gap-1.5 text-xs ${quota.used >= quota.limit ? "text-red-400" : "text-amber-400"}`}>
+                <AlertTriangle className="h-3.5 w-3.5" />
+                {quota.used >= quota.limit
+                  ? "Daily limit reached — resets tomorrow"
+                  : `${quota.used} of ${quota.limit} uploads used today`}
+              </div>
+            )}
+            <UploadDialog
+              open={dialogOpen}
+              onOpenChange={handleDialogOpenChange}
+              initialFile={pendingFile}
+              onConversionComplete={loadConversions}
+            />
+          </div>
         </div>
 
-        <ConversionTable conversions={conversions} loading={loading} slowLoad={slowLoad} />
+        <ConversionTable conversions={conversions} loading={loading} slowLoad={slowLoad} onDelete={loadConversions} />
 
         <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 py-12">
           <FileText className="h-4 w-4 text-muted-foreground/50" />
