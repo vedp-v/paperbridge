@@ -24,15 +24,20 @@ export default function DashboardPage() {
   const loadConversions = useCallback(async () => {
     const slowTimer = setTimeout(() => setSlowLoad(true), 3000);
     try {
-      const [data, quotaData] = await Promise.all([fetchConversions(), fetchQuota()]);
+      const data = await fetchConversions();
       setConversions(data);
-      setQuota(quotaData);
     } catch {
       // silently fail on initial load — user may not have any conversions yet
     } finally {
       clearTimeout(slowTimer);
       setSlowLoad(false);
       setLoading(false);
+    }
+    try {
+      const quotaData = await fetchQuota();
+      setQuota(quotaData);
+    } catch {
+      // quota is non-critical, fail silently
     }
   }, []);
 
